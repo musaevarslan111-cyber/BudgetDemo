@@ -1,0 +1,557 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>BudgetBuddy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+:root {
+  /* Layout: dark balance hero on top; entry form and category bars side by side; weekly strip and history below. */
+  --bg: #ECEFF5;
+  --surface: #FFFFFF;
+  --surface-2: #F3F5FA;
+  --fg: #14172B;
+  --muted: #586080;
+  --line: #D8DDEB;
+  --accent: #2F4BFF;
+  --accent-fg: #FFFFFF;
+  --good: #0E8A57;
+  --warn: #A86A00;
+  --bad: #CF2E48;
+  --bar-soft: #B9C3FF;
+  --hero-bg: #14172B;
+  --hero-line: #14172B;
+  --hero-fg: #F4F5FB;
+  --hero-muted: #A9B0CC;
+  --hero-track: rgba(255, 255, 255, 0.14);
+  --hero-chip: rgba(255, 255, 255, 0.1);
+  --h-good: #5BE3A4;
+  --h-warn: #FFC857;
+  --h-bad: #FF7A8C;
+  --c-food: #E07A1F;
+  --c-games: #6B4EF0;
+  --c-transport: #0F8FB8;
+  --c-fun: #D93A82;
+  --c-other: #7A8099;
+  --font-display: 'Unbounded', 'Trebuchet MS', sans-serif;
+  --font-body: 'Onest', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C0E1B; --surface: #151830; --surface-2: #1C2040; --fg: #EEF0FA; --muted: #9AA2C2; --line: #2A2F55;
+    --accent: #6F86FF; --accent-fg: #0C0E1B; --good: #3DD68C; --warn: #F5B942; --bad: #FF6B80; --bar-soft: #3A4390;
+    --hero-bg: #1E2248; --hero-line: #323969; --hero-chip: rgba(255, 255, 255, 0.08);
+    --c-food: #FFA24D; --c-games: #9B88FF; --c-transport: #3BC4EE; --c-fun: #FF6FA8; --c-other: #A3A9C2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C0E1B; --surface: #151830; --surface-2: #1C2040; --fg: #EEF0FA; --muted: #9AA2C2; --line: #2A2F55;
+  --accent: #6F86FF; --accent-fg: #0C0E1B; --good: #3DD68C; --warn: #F5B942; --bad: #FF6B80; --bar-soft: #3A4390;
+  --hero-bg: #1E2248; --hero-line: #323969; --hero-chip: rgba(255, 255, 255, 0.08);
+  --c-food: #FFA24D; --c-games: #9B88FF; --c-transport: #3BC4EE; --c-fun: #FF6FA8; --c-other: #A3A9C2;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; letter-spacing: -0.01em; }
+.brand small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 0.82rem; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
+
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg.full { display: flex; }
+.seg-btn { border: 0; background: transparent; color: var(--muted); font-size: 0.86rem; font-weight: 600; padding: 7px 14px; border-radius: 999px; }
+.seg.full .seg-btn { flex: 1; padding: 9px 14px; }
+.seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+
+.demo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; font-size: 0.88rem; color: var(--muted); }
+.link-btn { background: none; border: 0; color: var(--accent); font-weight: 600; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+
+/* hero */
+.hero { background: var(--hero-bg); color: var(--hero-fg); border: 1px solid var(--hero-line); border-radius: 20px; padding: 24px; display: grid; gap: 22px; }
+@media (min-width: 760px) { .hero { grid-template-columns: 1.1fr 1fr; align-items: end; padding: 30px; } }
+.hero > div { min-width: 0; }
+.hero-label { font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--hero-muted); }
+.hero-num { font-family: var(--font-display); font-weight: 700; font-size: clamp(2rem, 8vw, 3.3rem); line-height: 1.08; letter-spacing: -0.02em; margin: 6px 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hero-num span { font-family: var(--font-body); font-size: 0.34em; font-weight: 500; color: var(--hero-muted); margin-left: 0.5em; letter-spacing: 0; }
+.chip-days { display: inline-block; margin-top: 14px; background: var(--hero-chip); border-radius: 999px; padding: 6px 13px; font-size: 0.86rem; }
+.hero-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 14px; }
+.hero-stat span { display: block; font-size: 0.78rem; color: var(--hero-muted); }
+.hero-stat b { font-size: 1.08rem; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bar-track { height: 12px; border-radius: 999px; background: var(--hero-track); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; transition: width 0.35s ease; }
+.hero-msg { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 0.9rem; color: var(--hero-muted); }
+.hero-msg strong { font-weight: 600; }
+.tone-good .bar-fill { background: var(--h-good); } .tone-good .hero-msg strong { color: var(--h-good); }
+.tone-warn .bar-fill { background: var(--h-warn); } .tone-warn .hero-msg strong { color: var(--h-warn); }
+.tone-bad .bar-fill { background: var(--h-bad); } .tone-bad .hero-msg strong { color: var(--h-bad); }
+
+/* grid of cards */
+.grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 860px) {
+  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "form cats" "week hist"; }
+  .a-form { grid-area: form; } .a-cats { grid-area: cats; } .a-week { grid-area: week; } .a-hist { grid-area: hist; }
+}
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; min-width: 0; }
+.card h2 { font-family: var(--font-display); font-weight: 500; font-size: 0.92rem; letter-spacing: 0.01em; margin: 0 0 16px; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 0.86rem; margin: 0; }
+
+/* form */
+.form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .lbl { font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.input { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 16px; min-width: 0; }
+.amount-wrap { position: relative; }
+.amount-wrap .input { font-family: var(--font-display); font-size: 1.35rem; font-weight: 500; padding-right: 64px; font-variant-numeric: tabular-nums; }
+.amount-wrap em { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px; font-size: 0.88rem; font-weight: 500; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip.quick { color: var(--muted); font-variant-numeric: tabular-nums; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dot, var(--c-other)); flex: none; }
+.submit { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 12px; padding: 13px 18px; font-weight: 700; font-size: 1rem; }
+.submit:hover { filter: brightness(1.08); }
+.msg { min-height: 1.3em; font-size: 0.88rem; margin: 0; }
+.msg.err { color: var(--bad); } .msg.ok { color: var(--good); }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 420px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* categories */
+.strip { display: flex; height: 18px; border-radius: 999px; overflow: hidden; background: var(--surface-2); margin-bottom: 14px; gap: 2px; }
+.strip i { display: block; height: 100%; background: var(--dot); min-width: 3px; }
+.cat-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.cat-btn { width: 100%; display: block; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 12px; padding: 9px 10px; }
+.cat-btn:hover { background: var(--surface-2); }
+.cat-btn[aria-pressed="true"] { background: var(--surface-2); border-color: var(--accent); }
+.cat-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-weight: 500; }
+.cat-top .name { flex: 1; min-width: 0; }
+.cat-top .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+.cat-top .pct { color: var(--muted); font-variant-numeric: tabular-nums; width: 3.2em; text-align: right; font-size: 0.88rem; }
+.track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--line); }
+.cat-btn:hover .track, .cat-btn[aria-pressed="true"] .track { background: var(--surface); }
+.fill { height: 100%; background: var(--dot); border-radius: 999px; transition: width 0.35s ease; }
+.hint { color: var(--muted); font-size: 0.84rem; margin: 12px 0 0; }
+
+/* week */
+.wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.wk-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 128px; min-width: 0; }
+.wk-val { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wk-bar { width: min(34px, 70%); background: var(--bar-soft); border-radius: 6px 6px 2px 2px; transition: height 0.35s ease; }
+.wk-col.today .wk-bar { background: var(--accent); }
+.wk-col.today .wk-val { color: var(--fg); font-weight: 700; }
+.wk-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 8px; text-align: center; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.wk-days .today { color: var(--fg); font-weight: 700; }
+
+/* history */
+.hist-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.hist-head h2 { margin: 0; }
+.filter-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--accent); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 0.84rem; font-weight: 600; }
+.filter-pill button { border: 0; background: var(--surface); border-radius: 50%; width: 22px; height: 22px; line-height: 1; padding: 0; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; max-height: 440px; overflow-y: auto; }
+.item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); }
+.item:first-child { border-top: 0; }
+.item .t { min-width: 0; }
+.item .t b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.item .t span { color: var(--muted); font-size: 0.82rem; }
+.item .amt { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.item .amt.in { color: var(--good); }
+.del { border: 0; background: transparent; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; font-size: 1.15rem; line-height: 1; }
+.del:hover { background: var(--surface-2); color: var(--bad); }
+.empty { color: var(--muted); padding: 18px 0 6px; margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill, .fill, .wk-bar { transition: none; }
+}
+</style>
+
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+(function () {
+  var useState = React.useState, useMemo = React.useMemo, useEffect = React.useEffect, useRef = React.useRef;
+  var h = React.createElement;
+
+  var EXP_CATS = [
+    { id: 'food', name: 'Еда' },
+    { id: 'games', name: 'Игры' },
+    { id: 'transport', name: 'Транспорт' },
+    { id: 'fun', name: 'Развлечения' },
+    { id: 'other', name: 'Другое' }
+  ];
+  var INC_CATS = [
+    { id: 'allowance', name: 'Карманные' },
+    { id: 'gift', name: 'Подарок' },
+    { id: 'job', name: 'Подработка' }
+  ];
+  var CAT_NAME = {};
+  EXP_CATS.concat(INC_CATS).forEach(function (c) { CAT_NAME[c.id] = c.name; });
+
+  var nf = new Intl.NumberFormat('ru-RU');
+  function fmt(n) { return nf.format(n); }
+  function fmtK(v) { return v >= 1000 ? Math.round(v / 1000) + 'к' : String(v); }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+  var NOW = new Date();
+  var TODAY = iso(NOW);
+  var YESTERDAY = iso(addDays(NOW, -1));
+
+  function parseISO(s) { return new Date(s + 'T12:00:00'); }
+  function dayLabel(s) {
+    if (s === TODAY) return 'Сегодня';
+    if (s === YESTERDAY) return 'Вчера';
+    return parseISO(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  }
+  function catColor(tx) { return tx.type === 'in' ? 'var(--good)' : 'var(--c-' + tx.cat + ')'; }
+
+  function sample() {
+    var rows = [
+      [-12, 'out', 'food', 22000, 'Лепёшка и чай после школы'],
+      [-10, 'out', 'games', 70000, 'Подписка на игру'],
+      [-9, 'in', 'job', 120000, 'Помог соседу с компьютером'],
+      [-6, 'in', 'allowance', 300000, 'Карманные на месяц'],
+      [-5, 'out', 'other', 30000, 'Чехол для телефона'],
+      [-4, 'out', 'food', 25000, 'Пицца с друзьями'],
+      [-3, 'out', 'food', 15000, 'Бабл-ти'],
+      [-2, 'out', 'fun', 60000, 'Кино'],
+      [-2, 'out', 'transport', 8000, 'Такси домой'],
+      [-1, 'out', 'games', 45000, 'Скины в игре'],
+      [-1, 'out', 'food', 12000, 'Самса'],
+      [0, 'out', 'food', 18000, 'Обед в столовой'],
+      [0, 'out', 'transport', 4000, 'Автобус']
+    ];
+    return rows.map(function (r, i) {
+      return { id: 's' + i, date: iso(addDays(NOW, r[0])), type: r[1], cat: r[2], amount: r[3], note: r[4] };
+    });
+  }
+
+  var KEY = 'budgetbuddy-v1';
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && Array.isArray(d.txs)) return d;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function save(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  /* ---------- Hero ---------- */
+  function Hero(p) {
+    var ratio = p.income > 0 ? p.spent / p.income : (p.spent > 0 ? 1.5 : 0);
+    var pct = Math.min(100, Math.round(ratio * 100));
+    var tone = 'good', msg = 'Всё под контролем';
+    if (p.income === 0 && p.spent === 0) { msg = 'За этот период записей нет'; }
+    else if (p.income === 0) { tone = 'bad'; msg = 'Доходов нет, а траты есть'; }
+    else if (ratio >= 1) { tone = 'bad'; msg = 'Бюджет закончился'; }
+    else if (ratio >= 0.9) { tone = 'bad'; msg = 'Почти всё потрачено'; }
+    else if (ratio >= 0.6) { tone = 'warn'; msg = 'Деньги уходят быстро'; }
+
+    var days;
+    if (p.balance <= 0) days = 'Баланс ушёл в минус';
+    else if (p.avgDaily === 0) days = 'За неделю трат не было';
+    else {
+      var left = Math.floor(p.balance / p.avgDaily);
+      days = left < 1 ? 'При таких тратах хватит меньше чем на день' : 'При таких тратах хватит примерно на ' + left + ' дн.';
+    }
+
+    return h('section', { className: 'hero tone-' + tone, 'aria-label': 'Баланс' },
+      h('div', null,
+        h('div', { className: 'hero-label' }, 'Сейчас на руках'),
+        h('p', { className: 'hero-num' }, (p.balance < 0 ? '−' : '') + fmt(Math.abs(p.balance)), h('span', null, 'сум')),
+        h('span', { className: 'chip-days' }, days)
+      ),
+      h('div', null,
+        h('div', { className: 'hero-stats' },
+          h('div', { className: 'hero-stat' }, h('span', null, 'Доходы · ' + p.periodLabel), h('b', null, '+' + fmt(p.income))),
+          h('div', { className: 'hero-stat' }, h('span', null, 'Расходы · ' + p.periodLabel), h('b', null, '−' + fmt(p.spent)))
+        ),
+        h('div', { className: 'bar-track', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, 'aria-label': 'Доля потраченных денег' },
+          h('div', { className: 'bar-fill', style: { width: pct + '%' } })
+        ),
+        h('div', { className: 'hero-msg' },
+          h('strong', null, msg),
+          p.income > 0 ? h('span', null, 'Потрачено ' + pct + '% от доходов') : null
+        )
+      )
+    );
+  }
+
+  /* ---------- Add form ---------- */
+  var TYPE_OPTS = [{ id: 'out', label: 'Расход' }, { id: 'in', label: 'Доход' }];
+  var QUICK = [5000, 10000, 50000];
+
+  function AddForm(p) {
+    var _t = useState('out'), type = _t[0], setType = _t[1];
+    var _a = useState(''), amount = _a[0], setAmount = _a[1];
+    var _c = useState('food'), cat = _c[0], setCat = _c[1];
+    var _n = useState(''), note = _n[0], setNote = _n[1];
+    var _d = useState(TODAY), date = _d[0], setDate = _d[1];
+    var _m = useState(null), msg = _m[0], setMsg = _m[1];
+    var amountRef = useRef(null);
+
+    useEffect(function () {
+      if (!msg || msg.kind !== 'ok') return;
+      var t = setTimeout(function () { setMsg(null); }, 3000);
+      return function () { clearTimeout(t); };
+    }, [msg]);
+
+    var cats = type === 'out' ? EXP_CATS : INC_CATS;
+
+    function pickType(t) {
+      setType(t);
+      setCat(t === 'out' ? EXP_CATS[0].id : INC_CATS[0].id);
+      setMsg(null);
+    }
+    function onAmount(e) {
+      var digits = e.target.value.replace(/\D/g, '').slice(0, 9).replace(/^0+/, '');
+      setAmount(digits);
+      setMsg(null);
+    }
+    function submit(e) {
+      e.preventDefault();
+      var value = parseInt(amount, 10);
+      if (!value || value <= 0) {
+        setMsg({ kind: 'err', text: 'Введите сумму больше нуля.' });
+        if (amountRef.current) amountRef.current.focus();
+        return;
+      }
+      var d = date || TODAY;
+      p.onAdd({
+        id: 'u' + Date.now() + Math.random().toString(36).slice(2, 6),
+        type: type, cat: cat, amount: value, note: note.trim(), date: d
+      });
+      setMsg({ kind: 'ok', text: 'Записано: ' + (type === 'in' ? '+' : '−') + fmt(value) + ' сум' });
+      setAmount('');
+      setNote('');
+      if (amountRef.current) amountRef.current.focus();
+    }
+
+    return h('section', { className: 'card a-form' },
+      h('h2', null, 'Новая запись'),
+      h('form', { className: 'form', onSubmit: submit, noValidate: true },
+        h('div', { className: 'seg full', role: 'group', 'aria-label': 'Тип записи' },
+          TYPE_OPTS.map(function (o) {
+            return h('button', { key: o.id, type: 'button', className: 'seg-btn', 'aria-pressed': type === o.id, onClick: function () { pickType(o.id); } }, o.label);
+          })
+        ),
+        h('div', { className: 'field' },
+          h('label', { htmlFor: 'amount' }, 'Сумма'),
+          h('div', { className: 'amount-wrap' },
+            h('input', { id: 'amount', ref: amountRef, className: 'input', type: 'text', inputMode: 'numeric', autoComplete: 'off', placeholder: '0', value: amount ? fmt(parseInt(amount, 10)) : '', onChange: onAmount }),
+            h('em', null, 'сум')
+          ),
+          h('div', { className: 'chips', style: { marginTop: 4 } },
+            QUICK.map(function (q) {
+              return h('button', { key: q, type: 'button', className: 'chip quick', onClick: function () { setAmount(String((parseInt(amount, 10) || 0) + q)); setMsg(null); } }, '+' + fmt(q));
+            })
+          )
+        ),
+        h('div', { className: 'field' },
+          h('span', { className: 'lbl', id: 'cat-lbl' }, 'Категория'),
+          h('div', { className: 'chips', role: 'group', 'aria-labelledby': 'cat-lbl' },
+            cats.map(function (c) {
+              return h('button', { key: c.id, type: 'button', className: 'chip', 'aria-pressed': cat === c.id, onClick: function () { setCat(c.id); } },
+                h('span', { className: 'dot', style: { '--dot': type === 'in' ? 'var(--good)' : 'var(--c-' + c.id + ')' } }), c.name);
+            })
+          )
+        ),
+        h('div', { className: 'row2' },
+          h('div', { className: 'field' },
+            h('label', { htmlFor: 'note' }, 'Заметка'),
+            h('input', { id: 'note', className: 'input', type: 'text', maxLength: 60, placeholder: 'На что потратил', value: note, onChange: function (e) { setNote(e.target.value); } })
+          ),
+          h('div', { className: 'field' },
+            h('label', { htmlFor: 'date' }, 'Дата'),
+            h('input', { id: 'date', className: 'input', type: 'date', max: TODAY, value: date, onChange: function (e) { setDate(e.target.value); } })
+          )
+        ),
+        h('button', { type: 'submit', className: 'submit' }, type === 'out' ? 'Добавить расход' : 'Добавить доход'),
+        h('p', { className: 'msg ' + (msg ? msg.kind : ''), role: 'status', 'aria-live': 'polite' }, msg ? msg.text : '')
+      )
+    );
+  }
+
+  /* ---------- Categories ---------- */
+  function Categories(p) {
+    var rows = EXP_CATS
+      .map(function (c) { return { id: c.id, name: c.name, value: p.byCat[c.id] || 0 }; })
+      .filter(function (r) { return r.value > 0; })
+      .sort(function (a, b) { return b.value - a.value; });
+
+    return h('section', { className: 'card a-cats' },
+      h('h2', null, 'Куда уходят деньги'),
+      rows.length === 0
+        ? h('p', { className: 'empty' }, 'Расходов за этот период пока нет. Добавь первую запись слева.')
+        : h('div', null,
+            h('div', { className: 'strip', 'aria-hidden': 'true' },
+              rows.map(function (r) {
+                return h('i', { key: r.id, style: { width: (r.value / p.spent * 100) + '%', '--dot': 'var(--c-' + r.id + ')' } });
+              })
+            ),
+            h('ul', { className: 'cat-list' },
+              rows.map(function (r) {
+                var share = r.value / p.spent * 100;
+                return h('li', { key: r.id },
+                  h('button', { type: 'button', className: 'cat-btn', 'aria-pressed': p.active === r.id, onClick: function () { p.onPick(p.active === r.id ? null : r.id); } },
+                    h('div', { className: 'cat-top' },
+                      h('span', { className: 'dot', style: { '--dot': 'var(--c-' + r.id + ')' } }),
+                      h('span', { className: 'name' }, r.name),
+                      h('span', { className: 'val' }, fmt(r.value)),
+                      h('span', { className: 'pct' }, Math.round(share) + '%')
+                    ),
+                    h('div', { className: 'track' }, h('div', { className: 'fill', style: { width: share + '%', '--dot': 'var(--c-' + r.id + ')' } }))
+                  )
+                );
+              })
+            ),
+            h('p', { className: 'hint' }, 'Нажми на категорию, чтобы увидеть только её траты в истории.')
+          )
+    );
+  }
+
+  /* ---------- Week chart ---------- */
+  function WeekChart(p) {
+    var days = [6, 5, 4, 3, 2, 1, 0].map(function (i) {
+      var d = addDays(NOW, -i);
+      var key = iso(d);
+      var total = p.txs.reduce(function (s, t) { return t.type === 'out' && t.date === key ? s + t.amount : s; }, 0);
+      return { key: key, total: total, label: d.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', ''), today: i === 0 };
+    });
+    var max = days.reduce(function (m, d) { return Math.max(m, d.total); }, 0);
+    var sum = days.reduce(function (s, d) { return s + d.total; }, 0);
+
+    return h('section', { className: 'card a-week' },
+      h('h2', null, 'Последние 7 дней'),
+      h('div', { className: 'wk', role: 'img', 'aria-label': 'Расходы по дням за последнюю неделю, всего ' + fmt(sum) + ' сум' },
+        days.map(function (d) {
+          var bar = max > 0 && d.total > 0 ? Math.max(4, Math.round(d.total / max * 92)) : 2;
+          return h('div', { key: d.key, className: 'wk-col' + (d.today ? ' today' : '') },
+            h('span', { className: 'wk-val' }, d.total > 0 ? fmtK(d.total) : '0'),
+            h('div', { className: 'wk-bar', style: { height: bar + 'px' } })
+          );
+        })
+      ),
+      h('div', { className: 'wk-days', 'aria-hidden': 'true' },
+        days.map(function (d) { return h('span', { key: d.key, className: d.today ? 'today' : '' }, d.label); })
+      ),
+      h('p', { className: 'hint' }, sum > 0 ? 'Всего ' + fmt(sum) + ' сум, в среднем ' + fmt(Math.round(sum / 7)) + ' в день.' : 'За неделю расходов нет.')
+    );
+  }
+
+  /* ---------- History ---------- */
+  function History(p) {
+    return h('section', { className: 'card a-hist' },
+      h('div', { className: 'hist-head' },
+        h('h2', null, 'История'),
+        p.cat ? h('span', { className: 'filter-pill' }, CAT_NAME[p.cat],
+          h('button', { type: 'button', 'aria-label': 'Сбросить фильтр', onClick: function () { p.onClear(); } }, '×')) : null
+      ),
+      p.items.length === 0
+        ? h('p', { className: 'empty' }, 'Записей нет. Добавь доход или расход, и они появятся здесь.')
+        : h('ul', { className: 'list' },
+            p.items.map(function (t) {
+              return h('li', { key: t.id, className: 'item' },
+                h('span', { className: 'dot', style: { '--dot': catColor(t) } }),
+                h('div', { className: 't' }, h('b', null, t.note || CAT_NAME[t.cat]), h('span', null, CAT_NAME[t.cat] + ' · ' + dayLabel(t.date))),
+                h('span', { className: 'amt ' + t.type }, (t.type === 'in' ? '+' : '−') + fmt(t.amount)),
+                h('button', { type: 'button', className: 'del', 'aria-label': 'Удалить запись', onClick: function () { p.onDelete(t.id); } }, '×')
+              );
+            })
+          )
+    );
+  }
+
+  /* ---------- App ---------- */
+  var PERIODS = [
+    { id: 'week', label: '7 дней' },
+    { id: 'month', label: '30 дней' },
+    { id: 'all', label: 'Всё время' }
+  ];
+  var PERIOD_LABEL = { week: '7 дней', month: '30 дней', all: 'всё время' };
+
+  function App() {
+    var init = useMemo(function () { return load() || { txs: sample(), demo: true }; }, []);
+    var _tx = useState(init.txs), txs = _tx[0], setTxs = _tx[1];
+    var _demo = useState(!!init.demo), demo = _demo[0], setDemo = _demo[1];
+    var _p = useState('month'), period = _p[0], setPeriod = _p[1];
+    var _c = useState(null), cat = _c[0], setCat = _c[1];
+
+    useEffect(function () { save({ txs: txs, demo: demo }); }, [txs, demo]);
+
+    var cutoff = period === 'week' ? iso(addDays(NOW, -6)) : period === 'month' ? iso(addDays(NOW, -29)) : '';
+
+    var inPeriod = useMemo(function () {
+      return txs.filter(function (t) { return t.date >= cutoff; });
+    }, [txs, cutoff]);
+
+    var income = inPeriod.reduce(function (s, t) { return t.type === 'in' ? s + t.amount : s; }, 0);
+    var spent = inPeriod.reduce(function (s, t) { return t.type === 'out' ? s + t.amount : s; }, 0);
+    var balance = txs.reduce(function (s, t) { return s + (t.type === 'in' ? t.amount : -t.amount); }, 0);
+    var byCat = inPeriod.reduce(function (acc, t) {
+      if (t.type === 'out') acc[t.cat] = (acc[t.cat] || 0) + t.amount;
+      return acc;
+    }, {});
+
+    var weekStart = iso(addDays(NOW, -6));
+    var weekSpent = txs.reduce(function (s, t) { return t.type === 'out' && t.date >= weekStart ? s + t.amount : s; }, 0);
+    var avgDaily = weekSpent / 7;
+
+    var items = inPeriod
+      .filter(function (t) { return !cat || t.cat === cat; })
+      .slice()
+      .sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : (a.id < b.id ? 1 : -1); });
+
+    function addTx(tx) { setTxs(function (prev) { return prev.concat([tx]); }); }
+    function delTx(id) { setTxs(function (prev) { return prev.filter(function (t) { return t.id !== id; }); }); }
+    function clearDemo() { setTxs([]); setDemo(false); setCat(null); }
+
+    return h('main', { className: 'app' },
+      h('header', { className: 'top' },
+        h('div', { className: 'brand' }, 'BudgetBuddy', h('small', null, 'Карманные деньги под контролем')),
+        h('div', { className: 'seg', role: 'group', 'aria-label': 'Период' },
+          PERIODS.map(function (o) {
+            return h('button', { key: o.id, type: 'button', className: 'seg-btn', 'aria-pressed': period === o.id, onClick: function () { setPeriod(o.id); } }, o.label);
+          })
+        )
+      ),
+      demo ? h('div', { className: 'demo' },
+        h('span', null, 'Сейчас на странице примеры. Они помогают понять, как всё работает.'),
+        h('button', { type: 'button', className: 'link-btn', onClick: clearDemo }, 'Очистить и начать со своих')
+      ) : null,
+      h(Hero, { balance: balance, income: income, spent: spent, avgDaily: avgDaily, periodLabel: PERIOD_LABEL[period] }),
+      h('div', { className: 'grid' },
+        h(AddForm, { onAdd: addTx }),
+        h(Categories, { byCat: byCat, spent: spent, active: cat, onPick: setCat }),
+        h(WeekChart, { txs: txs }),
+        h(History, { items: items, cat: cat, onClear: function () { setCat(null); }, onDelete: delTx })
+      )
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+})();
+</script>
+
+</body></html>
